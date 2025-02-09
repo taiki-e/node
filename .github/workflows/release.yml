@@ -1,0 +1,71 @@
+name: Release
+
+# To release:
+#
+# git tag "${node_version}+solaris"
+# git push origin --tags
+
+permissions:
+  contents: read
+
+on:
+  push:
+    tags:
+      - v[0-9]+.[0-9]+.[0-9]+\+solaris
+
+defaults:
+  run:
+    shell: bash --noprofile --norc -CeEuxo pipefail {0}
+
+jobs:
+  release:
+    if: github.repository_owner == 'taiki-e'
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    permissions:
+      contents: write
+    steps:
+      - uses: taiki-e/checkout-action@v1
+      - uses: taiki-e/create-gh-release-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: vmactions/solaris-vm@v1
+        with:
+          usesh: true
+          run: |
+            # Solaris sh has no -C/-E/-o pipefail
+            set -eux
+            g() {
+              set +x
+              ifs="${IFS}"
+              IFS=' '
+              cmd="$*"
+              IFS="${ifs}"
+              printf '::group::%s\n' "${cmd#retry }"
+              "$@"
+              printf '::endgroup::\n'
+              set -x
+            }
+            g pkg install git gnu-make gnu-binutils gcc pkg://solaris/runtime/python-37
+            export PATH="/usr/gnu/bin:${PATH}"
+            CC=gcc ./configure --dest-cpu=x64 --dest-os=solaris --prefix=/opt/node
+            g gmake
+            g gmake install
+            wd=$(pwd)
+            cd /opt
+            tar acvf "${wd}"/node-solaris-x64.tar.gz node
+      - run: |
+          retry() {
+            for i in {1..10}; do
+              if "$@"; then
+                return 0
+              else
+                sleep "${i}"
+              fi
+            done
+            "$@"
+          }
+          tag="${GITHUB_REF#refs/tags/}"
+          retry gh release upload "${tag}" node-solaris-x64.tar.gz --clobber
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
