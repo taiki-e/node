@@ -89,7 +89,7 @@
 #define HAVE_DLFCN_H 1
 
 /* Define to 1 if you have `epoll_{create1,ctl,wait}` */
-#define HAVE_EPOLL 1
+/* #undef HAVE_EPOLL */
 
 /* Define to 1 if you have the <errno.h> header file. */
 #define HAVE_ERRNO_H 1
@@ -314,7 +314,7 @@
 #define HAVE_STRUCT_TIMEVAL 1
 
 /* Define to 1 if you have the <sys/epoll.h> header file. */
-#define HAVE_SYS_EPOLL_H 1
+/* #undef HAVE_SYS_EPOLL_H */
 
 /* Define to 1 if you have the <sys/event.h> header file. */
 /* #undef HAVE_SYS_EVENT_H */
