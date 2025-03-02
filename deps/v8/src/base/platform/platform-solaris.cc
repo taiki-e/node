@@ -13,6 +13,7 @@
 #include <errno.h>
 #include <ieeefp.h>  // finite()
 #include <pthread.h>
+#include <thread.h>
 #include <semaphore.h>
 #include <signal.h>  // sigemptyset(), etc
 #include <sys/mman.h>  // mmap()
@@ -73,20 +74,9 @@ std::vector<OS::MemoryRange> OS::GetFreeMemoryRangesWithin(
 
 // static
 Stack::StackSlot Stack::ObtainCurrentThreadStackStart() {
-  pthread_attr_t attr;
-  int error;
-  pthread_attr_init(&attr);
-  error = pthread_attr_get_np(pthread_self(), &attr);
-  if (!error) {
-    void* base;
-    size_t size;
-    error = pthread_attr_getstack(&attr, &base, &size);
-    CHECK(!error);
-    pthread_attr_destroy(&attr);
-    return reinterpret_cast<uint8_t*>(base) + size;
-  }
-  pthread_attr_destroy(&attr);
-  return nullptr;
+  stack_t s;
+  thr_stksegment(&s);
+  return s.ss_sp;
 }
 
 }  // namespace base
